@@ -1,0 +1,508 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. */
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    border-color: hsl(var(--border));
+  }
+
+  body {
+    background-color: #0a0a0a;
+    color: white;
+    font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+    background: linear-gradient(135deg, #0a0a0a 0%, #161616 50%, #1f1f1f 100%);
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Force dark navigation bar on mobile */
+  html {
+    background-color: #000000;
+  }
+
+  /* Android Chrome navigation bar */
+  @media screen and (max-width: 768px) {
+    html {
+      background-color: #000000 !important;
+    }
+
+    body {
+      background-color: #000000;
+    }
+  }
+
+  /* Fix for white background on autofill */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus,
+  input:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 30px #1f1f1f inset !important;
+    -webkit-text-fill-color: white !important;
+    transition: background-color 5000s ease-in-out 0s;
+  }
+
+  /* Page scrollbar - matte black */
+  html {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(0, 0, 0, 0.8) hsl(220 9% 26%);
+  }
+
+  html::-webkit-scrollbar {
+    width: 12px;
+    background: hsl(220 9% 26%);
+  }
+
+  html::-webkit-scrollbar-track {
+    background: hsl(220 9% 26%);
+  }
+
+  html::-webkit-scrollbar-thumb {
+    background-color: rgba(0, 0, 0, 0.8);
+    border-radius: 6px;
+    border: none;
+  }
+
+  html::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(0, 0, 0, 0.9);
+  }
+
+  html::-webkit-scrollbar-corner {
+    background: hsl(220 9% 26%);
+  }
+}
+
+@layer components {
+  .glass {
+    background-color: rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .glass-card {
+    background: rgba(18, 18, 18, 0.75);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 1rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    will-change: transform;
+  }
+
+  .solid-card {
+    background: rgba(18, 18, 18, 255);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 1rem;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    will-change: transform;
+  }
+
+  .glass-background {
+    background: black;
+    background-attachment: fixed;
+  }
+
+  .neon-glow {
+    box-shadow: 0 0 10px rgba(0, 128, 255, 0.2), 0 0 20px rgba(0, 128, 255, 0.05);
+  }
+
+  .neon-border {
+    box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.9), 0 0 3px rgba(59, 130, 246, 0.5);
+  }
+
+  /* Remove spinner arrows from number inputs */
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  input[type="number"] {
+    -moz-appearance: textfield;
+  }
+
+  /* Placeholder styling for disabled inputs */
+  input:disabled::placeholder {
+    color: #9ca3af !important;
+    opacity: 1 !important;
+  }
+
+  .sidebar-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border-radius: 0.75rem;
+    transition: all 300ms;
+    cursor: pointer;
+    min-height: 2.5rem;
+  }
+
+  .sidebar-item:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .sidebar-item.active {
+    background: linear-gradient(to right, rgba(0, 128, 255, 0.2), rgba(0, 64, 255, 0.1));
+    border-left: 4px solid #0080ff;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Hide scrollbar completely for sidebar */
+  .sidebar-no-scroll {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .sidebar-no-scroll::-webkit-scrollbar {
+    display: none;
+  }
+
+  .modal {
+    display: none; 
+    position: fixed; 
+    z-index: 1000; 
+    left: 0;
+    top: 0;
+    width: 100%; 
+    height: 100%; 
+    overflow: auto; 
+    background-color: rgba(0, 0, 0, 0.4); 
+    transition: opacity 0.3s ease;
+  }
+  
+  .modal.show {
+    display: flex;
+    opacity: 1;
+  }
+  
+  .modal.hidden {
+    display: none;
+    opacity: 0;
+  }
+  
+  .modal-content {
+    background-color: #fefefe;
+    margin: 15% auto; 
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%; 
+  }
+}
+
+@keyframes spin-coin {
+  0% {
+    transform: rotateY(0deg);
+  }
+
+  100% {
+    transform: rotateY(360deg);
+  }
+}
+
+.spin-coin {
+  animation: spin-coin 2s linear infinite;
+}
+
+@keyframes float-up {
+  0% {
+    transform: translateY(100vh) rotate(0deg) scale(1);
+    opacity: 0;
+  }
+
+  20% {
+    opacity: 0.9;
+    transform: translateY(90vh) rotate(45deg) scale(1);
+  }
+
+  80% {
+    opacity: 0.9;
+    transform: translateY(10vh) rotate(315deg) scale(1);
+  }
+
+  100% {
+    transform: translateY(-20vh) rotate(360deg) scale(0.9);
+    opacity: 0;
+  }
+}
+
+.float-icon {
+  display: none;
+}
+
+.float-icon svg {
+  display: none;
+}
+
+.float-icon.dollar {
+  display: none;
+}
+
+.float-icon.candle {
+  display: none;
+}
+
+/* Liquid Glass - Exclusive for Login Screen */
+.liquid-glass-login {
+  position: relative;
+  /* glassmorphism: soft translucent surface with subtle blur */
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(12px) saturate(120%);
+  -webkit-backdrop-filter: blur(12px) saturate(120%);
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.45);
+  border-radius: 1rem;
+  /* remove hover animation: no transition that animates on hover */
+  transition: border-color 120ms ease;
+  outline: none;
+}
+
+/* Completely remove hover-based visual movement for the input-like element */
+.liquid-glass-login:hover {
+  /* intentionally empty to avoid hover animation */
+}
+
+/* Keep focus visible but subtle */
+.liquid-glass-login:focus,
+.liquid-glass-login:focus-within,
+.liquid-glass-login:focus-visible {
+  border-color: rgba(59, 130, 246, 0.9) !important;
+  box-shadow: 0 8px 24px rgba(59,130,246,0.06);
+  /* no transform or translation on focus */
+}
+
+/* Login Card - simplified glassmorphism (removed translateY hover animation) */
+.liquid-glass-card {
+  position: relative;
+  border-radius: 1rem;
+  overflow: hidden;
+  background: linear-gradient(180deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.04) 100%);
+  backdrop-filter: blur(12px) saturate(120%);
+  -webkit-backdrop-filter: blur(12px) saturate(120%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow:
+    0 10px 30px rgba(0, 0, 0, 0.45);
+  /* remove heavy inset shadows and long transitions to avoid hover movement */
+  transition: box-shadow 160ms ease, border-color 120ms ease;
+}
+
+/* Remove vertical lift animation on hover; keep a subtle border-intensify if needed */
+.liquid-glass-card:hover {
+  /* no transform/translate on hover */
+  box-shadow: 0 12px 34px rgba(0,0,0,0.48);
+  border-color: rgba(255,255,255,0.12);
+}
+
+/* preserve decorative before/after but avoid animating them on hover */
+.liquid-glass-card::before,
+.liquid-glass-card::after {
+  /* ...keep existing decorative rules if present (no change needed) */
+}
+
+/* Crystal Shimmer Effect - Disabled */
+.crystal-shimmer {
+  position: relative;
+  overflow: hidden;
+}
+
+/* Sophisticated Blue Illumination - Exclusive for Login */
+.logo-glow {
+  filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.4)) drop-shadow(0 0 16px rgba(59, 130, 246, 0.2)) drop-shadow(0 0 24px rgba(59, 130, 246, 0.1));
+  transition: all 0.3s ease-in-out;
+}
+
+.logo-glow:hover {
+  filter: drop-shadow(0 0 12px rgba(59, 130, 246, 0.6)) drop-shadow(0 0 24px rgba(59, 130, 246, 0.3)) drop-shadow(0 0 36px rgba(59, 130, 246, 0.15));
+  transform: scale(1.05);
+}
+
+.title-glow {
+  text-shadow:
+    0 0 10px rgba(59, 130, 246, 0.5),
+    0 0 20px rgba(59, 130, 246, 0.3),
+    0 0 30px rgba(59, 130, 246, 0.1),
+    0 2px 4px rgba(0, 0, 0, 0.3);
+  background: linear-gradient(135deg,
+      #3b82f6 0%,
+      #60a5fa 25%,
+      #93c5fd 50%,
+      #dbeafe 75%,
+      #ffffff 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-size: 200% 200%;
+  transition: all 0.3s ease-in-out;
+}
+
+.title-glow:hover {
+  text-shadow:
+    0 0 15px rgba(59, 130, 246, 0.7),
+    0 0 30px rgba(59, 130, 246, 0.4),
+    0 0 45px rgba(59, 130, 246, 0.2),
+    0 3px 6px rgba(0, 0, 0, 0.4);
+  transform: scale(1.02);
+}
+
+.subtitle-glow {
+  text-shadow:
+    0 0 8px rgba(59, 130, 246, 0.3),
+    0 0 16px rgba(59, 130, 246, 0.1),
+    0 1px 2px rgba(0, 0, 0, 0.2);
+  color: rgba(147, 197, 253, 0.9);
+  transition: all 0.3s ease-in-out;
+}
+
+.subtitle-glow:hover {
+  text-shadow:
+    0 0 12px rgba(59, 130, 246, 0.5),
+    0 0 24px rgba(59, 130, 246, 0.2),
+    0 2px 4px rgba(0, 0, 0, 0.3);
+  color: rgba(147, 197, 253, 1);
+}
+
+@keyframes shimmer-text {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Pulsing Blue Aura - Disabled */
+.blue-aura {
+  position: relative;
+}
+
+.blue-aura::before {
+  content: '';
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  right: -10px;
+  bottom: -10px;
+  background: radial-gradient(circle,
+      rgba(59, 130, 246, 0.1) 0%,
+      rgba(59, 130, 246, 0.05) 50%,
+      transparent 100%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+/* Remove webkit focus ring */
+.liquid-glass-login::-webkit-focus-ring {
+  outline: none !important;
+}
+
+/* Remove any possible ring from Tailwind */
+.liquid-glass-login {
+  --tw-ring-shadow: none !important;
+  --tw-ring-offset-shadow: none !important;
+}
+
+@layer utilities {
+  .shadow-3xl {
+    box-shadow: 0 35px 60px -15px rgba(0, 0, 0, 0.3);
+  }
+}
