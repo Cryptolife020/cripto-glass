@@ -78,20 +78,26 @@ const StatCard = ({
 export const DashboardCards = () => {
   const { data, isLoading, error, btcDominanceChange, volumeChange } = useCoinGeckoData();
 
+  // Formatação brasileira consistente com DayTradeSystem
+  const formatarValor = (valor: number) => {
+    return (valor < 0 ? '-' : '') + '$' + new Intl.NumberFormat('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(Math.abs(valor));
+  };
+
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
+    return '$' + new Intl.NumberFormat('pt-BR', {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
-    }).format(value);
+    }).format(value).replace(/[^\d.,]/g, '');
   };
 
   const formatVolume = (value: number) => {
     if (value >= 1e12) {
-      return `$${(value / 1e12).toFixed(2)}T`;
+      return `$${(value / 1e12).toFixed(2).replace('.', ',')}T`;
     } else if (value >= 1e9) {
-      return `$${(value / 1e9).toFixed(2)}B`;
+      return `$${(value / 1e9).toFixed(2).replace('.', ',')}B`;
     } else {
       return formatCurrency(value);
     }

@@ -110,11 +110,12 @@ export const DayTradeDashboard = ({ onClose }: { onClose: () => void }) => {
   };
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2
-    }).format(value);
+    const absValue = Math.abs(value);
+    const formatted = absValue.toLocaleString('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+    return (value < 0 ? '-' : '') + '$' + formatted;
   };
 
   const formatPercentage = (value: number) => {

@@ -220,14 +220,14 @@ export const DayTradeSystem = ({ onFluxogramaModalOpenChange }: { onFluxogramaMo
           displayValorCaixa1.textContent = `$${new Intl.NumberFormat('pt-BR', {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2
-          }).format(setup.box1_value)}`;
+          }).format(setup.box1_value).replace(/[^\d.,]/g, '')}`;
         }
 
         if (displayValorCaixa2) {
           displayValorCaixa2.textContent = `$${new Intl.NumberFormat('pt-BR', {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2
-          }).format(setup.box2_value)}`;
+          }).format(setup.box2_value).replace(/[^\d.,]/g, '')}`;
         }
 
         // Recriar tabela "Registro Inicial Fixo"
@@ -421,6 +421,7 @@ export const DayTradeSystem = ({ onFluxogramaModalOpenChange }: { onFluxogramaMo
       let temOperacoes = false;
       if (operacoes.length > 0) {
         console.log('⚡ Operações carregadas:', operacoes);
+        console.log('🔍 Operações com cor laranja:', operacoes.filter(op => op.square_color === 'orange'));
         await recriarQuadradinhosOperacoes(operacoes, metasCarregadas);
         temOperacoes = true;
       }
@@ -1078,6 +1079,22 @@ export const DayTradeSystem = ({ onFluxogramaModalOpenChange }: { onFluxogramaMo
       });
 
       console.log(`💾 Operação do dia ${diaNumero} salva no banco`);
+
+      // Atualizar valores dos caixas no banco de dados após operação
+      const displayValorCaixa1 = document.getElementById('valor-caixa1');
+      const displayValorCaixa2 = document.getElementById('valor-caixa2');
+      
+      if (displayValorCaixa1 && displayValorCaixa2) {
+        const valorAtualCaixa1 = parseValorBrasileiro(displayValorCaixa1.textContent || '0');
+        const valorAtualCaixa2 = parseValorBrasileiro(displayValorCaixa2.textContent || '0');
+        
+        await DaytradeService.updateCurrentBoxValues({
+          box1Value: valorAtualCaixa1,
+          box2Value: valorAtualCaixa2
+        });
+        
+        console.log(`💰 Valores dos caixas atualizados no banco: Caixa1=${valorAtualCaixa1}, Caixa2=${valorAtualCaixa2}`);
+      }
 
       // Calcular e salvar estatísticas atualizadas após cada operação
       await calcularESalvarEstatisticas(cicloAtual);
@@ -3539,7 +3556,12 @@ export const DayTradeSystem = ({ onFluxogramaModalOpenChange }: { onFluxogramaMo
                   const modalConfirmacaoValorPerda = document.getElementById('modal-confirmacao-valor-perda');
 
                   if (modalConfirmacaoCaixa2 && modalConfirmacaoValorPerda) {
-                    modalConfirmacaoValorPerda.textContent = `$${valorPerda.toFixed(2)}`;
+                    // Formatar valor no padrão brasileiro
+                    const valorFormatado = new Intl.NumberFormat('pt-BR', {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2
+                    }).format(valorPerda);
+                    modalConfirmacaoValorPerda.textContent = `$${valorFormatado}`;
 
                     modalValorPrejuizo.classList.add('hidden');
                     modalValorPrejuizo.classList.remove('show');
@@ -3613,12 +3635,13 @@ export const DayTradeSystem = ({ onFluxogramaModalOpenChange }: { onFluxogramaMo
                     displayValorCaixa1.textContent = formatarValor(novoValorCaixa1);
                     displayValorCaixa2.textContent = formatarValor(novoValorCaixa2);
 
-                    // Mudar cor do quadradinho para laranja quando repõe a perda com caixa 2
+                    // Quadradinho laranja (perda reposta)
                     const quadradinhoAtual = (window as any).quadradinhoAtual;
                     if (quadradinhoAtual) {
                       const diaNumero = parseInt(quadradinhoAtual.textContent || '0');
-                      // CORREÇÃO: metaValorAtual já é um número, não precisa de parsing
-                      const metaValor = (window as any).metaValorAtual || 0;
+                      // CORREÇÃO: Garantir que metaValor seja sempre um número
+                      const metaValorRaw = (window as any).metaValorAtual || 0;
+                      const metaValor = typeof metaValorRaw === 'string' ? parseValorBrasileiro(metaValorRaw) : metaValorRaw;
 
                       quadradinhoAtual.style.backgroundColor = '#ea580c'; // Laranja
                       quadradinhoAtual.style.color = 'white';
@@ -3661,8 +3684,9 @@ export const DayTradeSystem = ({ onFluxogramaModalOpenChange }: { onFluxogramaMo
                     const quadradinhoAtual = (window as any).quadradinhoAtual;
                     if (quadradinhoAtual) {
                       const diaNumero = parseInt(quadradinhoAtual.textContent || '0');
-                      // CORREÇÃO: metaValorAtual já é um número, não precisa de parsing
-                      const metaValor = (window as any).metaValorAtual || 0;
+                      // CORREÇÃO: Garantir que metaValor seja sempre um número
+                      const metaValorRaw = (window as any).metaValorAtual || 0;
+                      const metaValor = typeof metaValorRaw === 'string' ? parseValorBrasileiro(metaValorRaw) : metaValorRaw;
 
                       quadradinhoAtual.style.backgroundColor = '#dc2626'; // Vermelho
                       quadradinhoAtual.style.color = 'white';
@@ -3737,8 +3761,9 @@ export const DayTradeSystem = ({ onFluxogramaModalOpenChange }: { onFluxogramaMo
                   const quadradinhoAtual = (window as any).quadradinhoAtual;
                   if (quadradinhoAtual) {
                     const diaNumero = parseInt(quadradinhoAtual.textContent || '0');
-                    // CORREÇÃO: metaValorAtual já é um número, não precisa de parsing
-                    const metaValor = (window as any).metaValorAtual || 0;
+                    // CORREÇÃO: metaValorAtual é uma string formatada, precisa converter para número
+                    const metaValorTexto = (window as any).metaValorAtual || '$0,00';
+                    const metaValor = parseValorBrasileiro(metaValorTexto);
 
                     quadradinhoAtual.style.backgroundColor = '#dc2626'; // Vermelho
                     quadradinhoAtual.style.color = 'white';

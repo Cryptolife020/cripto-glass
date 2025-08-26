@@ -39,6 +39,10 @@ interface DashboardStats {
   completedCycles: any[];
   currentOperations: any[];
   recentOperations: any[];
+  // Métrica da sessão (Resultado Atual do DayTradeSystem)
+  sessionNetResult: number; // Ganho/Perda Líquida em valor
+  sessionNetPct: number;    // Ganho/Perda Líquida em %
+  sessionInitialTotal: number; // Total dos CX fixo (Total Comprometido)
 }
 
 export const DashboardPage = () => {
@@ -88,10 +92,19 @@ export const DashboardPage = () => {
         current.net_result < worst.net_result ? current : worst
       ).cycle_number : 0;
       
-      // Calcular crescimento total
+      // Crescimento do caixa 1 baseado apenas no valor investido inicialmente no caixa 1
       const initialInvestment = setup?.box1_initial_fixed || 0;
+      const currentBox1Only = (setup?.box1_value || 0);
+      const totalGrowth = initialInvestment > 0 ? ((currentBox1Only - initialInvestment) / initialInvestment) * 100 : 0;
+
+      // Total atual somando os dois caixas (usado para métricas da sessão)
       const currentTotal = (setup?.box1_value || 0) + (setup?.box2_value || 0);
-      const totalGrowth = initialInvestment > 0 ? ((currentTotal - initialInvestment) / initialInvestment) * 100 : 0;
+
+      // Métrica da sessão (Resultado Atual do DayTradeSystem)
+      // Base: valores iniciais fixos de Caixa 1 + Caixa 2 vs total atual dos caixas
+      const sessionInitialTotal = (setup?.box1_initial_fixed || 0) + (setup?.box2_initial_fixed || 0);
+      const sessionNetResult = currentTotal - sessionInitialTotal;
+      const sessionNetPct = sessionInitialTotal > 0 ? (sessionNetResult / sessionInitialTotal) * 100 : 0;
       
       // Calcular retorno médio diário
       const avgDailyReturn = totalOperations > 0 ? netResult / totalOperations : 0;
@@ -115,7 +128,10 @@ export const DashboardPage = () => {
         worstCycle,
         completedCycles: currentCycle?.completed_cycles_history || [],
         currentOperations,
-        recentOperations: recentOperations.slice(0, 10)
+        recentOperations: recentOperations.slice(0, 10),
+        sessionNetResult,
+        sessionNetPct,
+        sessionInitialTotal
       });
     } catch (error) {
       console.error('❌ Erro ao carregar dados do dashboard:', error);
@@ -125,16 +141,36 @@ export const DashboardPage = () => {
   };
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 2
-    }).format(value);
+    const absValue = Math.abs(value);
+    const formatted = absValue.toLocaleString('pt-BR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+    return (value < 0 ? '-' : '') + '$' + formatted;
   };
 
   const formatPercentage = (value: number) => {
     return `${value >= 0 ? '+' : ''}${value.toFixed(2)}%`;
   };
+
+  // Chip compacto para exibir percentuais de forma consistente
+  const PercentChip = ({ label, value }: { label: string; value: number }) => (
+    <div
+      className={`px-3 py-2 rounded-lg border text-sm flex items-center gap-2 backdrop-blur-lg 
+        ${value >= 0 ? 'bg-green-500/10 border-green-500/30 text-green-200' : 'bg-red-500/10 border-red-500/30 text-red-200'}`}
+    >
+      <span className="text-xs opacity-80">{label}</span>
+      <span className="font-semibold">{formatPercentage(value)}</span>
+    </div>
+  );
+
+  // Linha padronizada: rótulo à esquerda e valor à direita
+  const RowLine = ({ label, children }: { label: string; children: React.ReactNode }) => (
+    <div className="grid grid-cols-2 items-baseline gap-2">
+      <span className="text-gray-300">{label}</span>
+      <span className="text-right">{children}</span>
+    </div>
+  );
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('pt-BR', {
@@ -144,6 +180,43 @@ export const DashboardPage = () => {
       hour: '2-digit',
       minute: '2-digit'
     });
+  };
+
+  const getOperationBadge = (squareColor: string, isGoalMet: boolean, operationValue: number, goalValue: number) => {
+    switch (squareColor) {
+      case 'green':
+        // Verificar se ultrapassou a meta
+        const ultrapassouMeta = operationValue > goalValue;
+        return {
+          color: 'bg-green-500',
+          text: ultrapassouMeta ? 'Meta Ultrapassada' : 'Meta Batida',
+          textColor: 'text-green-100'
+        };
+      case 'yellow':
+        return {
+          color: 'bg-yellow-500',
+          text: 'Lucro < Meta',
+          textColor: 'text-yellow-100'
+        };
+      case 'orange':
+        return {
+          color: 'bg-orange-500',
+          text: 'Perda Reposta',
+          textColor: 'text-orange-100'
+        };
+      case 'red':
+        return {
+          color: 'bg-red-500',
+          text: 'Perda Aceita',
+          textColor: 'text-red-100'
+        };
+      default:
+        return {
+          color: 'bg-gray-500',
+          text: 'Pendente',
+          textColor: 'text-gray-100'
+        };
+    }
   };
 
   if (loading) {
@@ -189,7 +262,15 @@ export const DashboardPage = () => {
   }
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="min-h-screen relative">
+      {/* Background image layer */}
+      <div
+        className="fixed inset-0 z-0 bg-cover bg-center"
+        style={{ backgroundImage: "url('/image/image-login3.jpg')" }}
+     >
+        <div className="absolute inset-0 bg-black/60" />
+      </div>
+      <div className="relative z-10">
       {/* Header */}
       <header className="bg-black/50 backdrop-blur-lg border-b border-white/10 sticky top-0 z-40">
         <div className="max-w-7xl mx-auto px-6 py-4">
@@ -252,18 +333,43 @@ export const DashboardPage = () => {
         {activeTab === 'overview' && (
           <div className="space-y-8">
             {/* Cards de Métricas Principais */}
+            {/* Resumo de Percentuais */}
+            <div className="mb-4 flex flex-wrap gap-2">
+              <PercentChip label="Crescimento do caixa 1" value={stats.totalGrowth} />
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div className="bg-gradient-to-br from-green-500/20 to-green-600/20 backdrop-blur-lg border border-green-500/30 rounded-xl p-6">
+              <div className={`bg-gradient-to-br backdrop-blur-lg rounded-xl p-6 border ${stats.netResult >= 0 ? 'from-green-500/20 to-green-600/20 border-green-500/30' : 'from-red-500/20 to-red-600/20 border-red-500/30'}`}>
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-green-300 text-sm font-medium">Resultado Líquido</p>
-                    <p className="text-2xl font-bold text-white">{formatCurrency(stats.netResult)}</p>
-                    <p className="text-green-400 text-sm flex items-center gap-1">
-                      <ArrowUpRight className="w-4 h-4" />
-                      {formatPercentage(stats.totalGrowth)}
+                    {/* Totais de CX acima do título */}
+                    <div className="mb-2 text-xs text-gray-300 space-y-1">
+                      <div className="flex items-baseline gap-1">
+                        <span>Total dos CX fixo:</span>
+                        <span className="text-gray-200 font-medium">{formatCurrency(stats.sessionInitialTotal || 0)}</span>
+                      </div>
+                      <div className="flex items-baseline gap-1">
+                        <span>Total dos CX atual:</span>
+                        <span className="text-gray-200 font-medium">{formatCurrency((stats.currentBox1 || 0) + (stats.currentBox2 || 0))}</span>
+                      </div>
+                    </div>
+
+                    <p className={`${stats.netResult >= 0 ? 'text-green-300' : 'text-red-300'} text-sm font-medium`}>Resultado Líquido</p>
+                    <p className={`text-2xl font-bold ${Number(stats.netResult) >= 0 ? 'text-green-400' : 'text-red-400'}`}>
+                      {(Number(stats.netResult) >= 0 ? '+' : '-') + '$' + Math.abs(Number(stats.netResult)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </p>
+
+                    {/* Linha compacta de Ganho/Perda (percentual) */}
+                    <div className="mt-2 text-xs text-gray-300">
+                      <div className="flex items-baseline gap-1">
+                        <span>Ganho/Perda:</span>
+                        <span className={`font-semibold ${stats.sessionNetPct >= 0 ? 'text-green-300' : 'text-red-300'}`}>
+                          {formatPercentage(stats.sessionNetPct)}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  <DollarSign className="w-8 h-8 text-green-400" />
+                  <DollarSign className={`w-8 h-8 ${stats.netResult >= 0 ? 'text-green-400' : 'text-red-400'}`} />
                 </div>
               </div>
 
@@ -309,30 +415,75 @@ export const DashboardPage = () => {
               </h3>
               {stats.recentOperations.length > 0 ? (
                 <div className="space-y-3">
-                  {stats.recentOperations.map((op) => (
-                    <div key={op.id} className="bg-white/5 border border-white/10 rounded-lg p-4 flex justify-between items-center">
-                      <div className="flex items-center gap-4">
-                        <div className={`w-3 h-3 rounded-full ${
-                          op.operation_type === 'profit' ? 'bg-green-400' :
-                          op.operation_type === 'loss' ? 'bg-red-400' : 'bg-gray-400'
-                        }`}></div>
-                        <div>
-                          <p className="text-white font-medium">Ciclo {op.cycle} - Dia {op.day_number}</p>
-                          <p className="text-gray-400 text-sm">{formatDate(op.created_at)}</p>
+                  {stats.recentOperations.map((op) => {
+                    const badge = getOperationBadge(op.square_color, op.is_goal_met, op.operation_value || 0, op.goal_value);
+                    
+                    // Função para formatar valor com sinal baseado no tipo e cor
+                    const formatValueWithSign = (value: number, operationType: string, squareColor: string) => {
+                      if (operationType === 'loss') {
+                        if (squareColor === 'orange') {
+                          // Perda reposta: mostrar valor negativo com ícone de reversão
+                          return (
+                            <span className="flex items-center gap-1">
+                              <span>↻</span>
+                              <span>-{formatCurrency(Math.abs(value))}</span>
+                            </span>
+                          );
+                        } else {
+                          return `-${formatCurrency(Math.abs(value))}`;
+                        }
+                      } else if (operationType === 'profit') {
+                        return `+${formatCurrency(value)}`;
+                      }
+                      return formatCurrency(value);
+                    };
+
+                    // Determinar cor do valor baseado no tipo e cor do quadradinho
+                    const getValueColor = (operationType: string, squareColor: string) => {
+                      if (operationType === 'loss') {
+                        if (squareColor === 'orange') {
+                          return 'text-orange-400'; // Perda reposta fica laranja
+                        } else {
+                          return 'text-red-400';
+                        }
+                      } else if (operationType === 'profit') {
+                        if (squareColor === 'yellow') {
+                          return 'text-yellow-400';
+                        } else {
+                          return 'text-green-400';
+                        }
+                      }
+                      return 'text-gray-400';
+                    };
+
+                    return (
+                      <div key={op.id} className="bg-white/5 border border-white/10 rounded-lg p-4 flex justify-between items-center">
+                        <div className="flex items-center gap-4">
+                          <div className={`w-3 h-3 rounded-full ${
+                            op.operation_type === 'profit' ? 'bg-green-400' :
+                            op.operation_type === 'loss' ? 'bg-red-400' : 'bg-gray-400'
+                          }`}></div>
+                          <div>
+                            <div className="flex items-center gap-2 mb-1">
+                              <p className="text-white font-medium">Ciclo {op.cycle} - Dia {op.day_number}</p>
+                              <span className={`${badge.color} ${badge.textColor} px-2 py-1 rounded-full text-xs font-medium`}>
+                                {badge.text}
+                              </span>
+                            </div>
+                            <p className="text-gray-400 text-sm">{formatDate(op.created_at)}</p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-gray-300 text-sm">Meta: {formatCurrency(op.goal_value)}</p>
+                          {op.operation_value && (
+                            <p className={`font-medium ${getValueColor(op.operation_type, op.square_color)}`}>
+                              {formatValueWithSign(op.operation_value, op.operation_type, op.square_color)}
+                            </p>
+                          )}
                         </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-gray-300 text-sm">Meta: {formatCurrency(op.goal_value)}</p>
-                        {op.operation_value && (
-                          <p className={`font-medium ${
-                            op.operation_type === 'profit' ? 'text-green-400' : 'text-red-400'
-                          }`}>
-                            {formatCurrency(op.operation_value)}
-                          </p>
-                        )}
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="text-center py-8">
@@ -402,6 +553,14 @@ export const DashboardPage = () => {
                         {formatCurrency(stats.netResult)}
                       </span>
                     </div>
+                    <div className="mt-2 text-sm text-gray-300">
+                      <div className="flex items-baseline gap-1 justify-start">
+                        <span>Ganho/Perda:</span>
+                        <span className={`${stats.sessionNetPct >= 0 ? 'text-green-300' : 'text-red-300'} font-semibold`}>
+                          {formatPercentage(stats.sessionNetPct)}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -425,7 +584,7 @@ export const DashboardPage = () => {
 
               <div className="bg-white/5 backdrop-blur-lg border border-white/10 rounded-xl p-6 text-center">
                 <BarChart3 className="w-8 h-8 text-purple-400 mx-auto mb-3" />
-                <h4 className="text-lg font-bold text-white mb-2">Crescimento Total</h4>
+                <h4 className="text-lg font-bold text-white mb-2">Crescimento Total CX (1)</h4>
                 <p className="text-2xl font-bold text-purple-400">{formatPercentage(stats.totalGrowth)}</p>
                 <p className="text-gray-400 text-sm">Desde o início</p>
               </div>
@@ -650,67 +809,176 @@ export const DashboardPage = () => {
                 Análise de Tendências
               </h3>
 
-              {stats.recentOperations.length > 0 ? (
-                <div className="space-y-6">
-                  {/* Timeline de Operações Recentes */}
-                  <div>
-                    <h4 className="text-lg font-semibold text-white mb-4">Timeline de Performance</h4>
-                    <div className="space-y-3">
-                      {stats.recentOperations.slice(0, 8).map((op, index) => (
-                        <div key={op.id} className="flex items-center gap-4 p-3 bg-white/5 rounded-lg">
-                          <div className="flex items-center gap-3">
-                            <div className={`w-3 h-3 rounded-full ${
-                              op.operation_type === 'profit' ? 'bg-green-400' :
-                              op.operation_type === 'loss' ? 'bg-red-400' : 'bg-gray-400'
-                            }`}></div>
-                            <span className="text-gray-300 text-sm">
-                              {formatDate(op.created_at)}
-                            </span>
-                          </div>
-                          <div className="flex-1">
-                            <span className="text-white font-medium">
-                              Ciclo {op.cycle} - Dia {op.day_number}
-                            </span>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-gray-300 text-sm">Meta: {formatCurrency(op.goal_value)}</p>
-                            {op.operation_value && (
-                              <p className={`font-medium ${
-                                op.operation_type === 'profit' ? 'text-green-400' : 'text-red-400'
-                              }`}>
-                                {formatCurrency(op.operation_value)}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+              {stats.recentOperations.length > 0 ? (() => {
+                // Preparar dados recentes (máx 12) em ordem crescente (mais antigo -> mais novo)
+                const recent = stats.recentOperations.slice(0, 12).reverse();
+                // Valores por operação (negativo p/ perdas, positivo p/ lucros)
+                const opValues = recent.map(op => {
+                  const v = op.operation_value || 0;
+                  return op.operation_type === 'loss' ? -Math.abs(v) : Math.abs(v);
+                });
+                // Série cumulativa (para KPIs e total)
+                const cumulative = opValues.reduce<number[]>((acc, v, i) => {
+                  const prev = i === 0 ? 0 : acc[i - 1];
+                  acc.push(prev + v);
+                  return acc;
+                }, []);
 
-                  {/* Métricas de Tendência */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="bg-white/5 border border-white/10 rounded-lg p-4 text-center">
-                      <div className="text-2xl font-bold text-blue-400 mb-1">
-                        {stats.recentOperations.filter(op => op.operation_type === 'profit').length}
+                // Config para gráfico de barras simples (mais intuitivo que sparkline)
+                const width = 300;
+                const height = 80;
+                const barGap = 4;
+                const n = Math.max(opValues.length, 1);
+                const barWidth = Math.max((width - (n + 1) * barGap) / n, 2);
+                const maxAbs = Math.max(1, ...opValues.map(v => Math.abs(v)));
+                const midY = height / 2; // linha zero
+
+                // Cálculos de tendência
+                const wins = recent.filter(op => op.operation_type === 'profit').length;
+                const losses = recent.filter(op => op.operation_type === 'loss').length;
+                const recentWinRate = recent.length ? Math.round((wins / recent.length) * 100) : 0;
+                const avgProfit = (() => {
+                  const arr = recent.filter(op => op.operation_type === 'profit').map(op => op.operation_value || 0);
+                  if (!arr.length) return 0; return arr.reduce((a,b)=>a+b,0)/arr.length;
+                })();
+                const avgLoss = (() => {
+                  const arr = recent.filter(op => op.operation_type === 'loss').map(op => op.operation_value || 0);
+                  if (!arr.length) return 0; return arr.reduce((a,b)=>a+b,0)/arr.length;
+                })();
+                const currentStreak = (() => {
+                  let s = 0; // positivo: win, negativo: loss
+                  for (let i = recent.length - 1; i >= 0; i--) {
+                    const t = recent[i].operation_type;
+                    if (s === 0) s = t === 'profit' ? 1 : -1;
+                    if (s > 0 && t === 'profit') s++; else if (s < 0 && t === 'loss') s--; else break;
+                  }
+                  return s;
+                })();
+
+                // Format helpers específicos desta seção
+                const valueColor = (op: any) => {
+                  if (op.operation_type === 'loss') {
+                    return op.square_color === 'orange' ? 'text-orange-400' : 'text-red-400';
+                  }
+                  if (op.operation_type === 'profit') {
+                    return op.square_color === 'yellow' ? 'text-yellow-400' : 'text-green-400';
+                  }
+                  return 'text-gray-400';
+                };
+                const valueContent = (op: any) => {
+                  const v = op.operation_value || 0;
+                  if (op.operation_type === 'loss') {
+                    if (op.square_color === 'orange') {
+                      return (
+                        <span className="flex items-center gap-1 justify-end">
+                          <span className="text-orange-400">↻</span>
+                          <span>-{formatCurrency(Math.abs(v))}</span>
+                        </span>
+                      );
+                    }
+                    return <>-{formatCurrency(Math.abs(v))}</>;
+                  }
+                  if (op.operation_type === 'profit') return <>+{formatCurrency(v)}</>;
+                  return <>{formatCurrency(v)}</>;
+                };
+
+                return (
+                  <div className="space-y-6">
+                    {/* Gráfico de PnL por operação (barras) */}
+                    <div>
+                      <h4 className="text-lg font-semibold text-white mb-3">Evolução PnL Recente</h4>
+                      <div className="bg-white/5 rounded-lg p-4">
+                        <svg width={width} height={height} className="w-full h-[80px]">
+                          {/* linha zero */}
+                          <line x1="0" y1={midY} x2={width} y2={midY} stroke="rgba(255,255,255,0.2)" strokeDasharray="4 4" />
+                          {opValues.map((v, i) => {
+                            const x = barGap + i * (barWidth + barGap);
+                            const h = (Math.abs(v) / maxAbs) * (height / 2 - 4);
+                            const y = v >= 0 ? midY - h : midY;
+                            const color = recent[i].operation_type === 'profit'
+                              ? (recent[i].square_color === 'yellow' ? '#fbbf24' : '#22c55e')
+                              : (recent[i].square_color === 'orange' ? '#fb923c' : '#ef4444');
+                            return (
+                              <rect key={i} x={x} y={y} width={barWidth} height={h} fill={color} rx="2" />
+                            );
+                          })}
+                        </svg>
+                        <div className="mt-2 flex items-center justify-between text-sm">
+                          <span className="text-gray-400">{recent.length} operações (ordem crescente)</span>
+                          <span className={`${cumulative[cumulative.length-1] >= 0 ? 'text-green-400' : 'text-red-400'} font-medium`}>
+                            {`Total: ${cumulative[cumulative.length-1] >= 0 ? '(+)' : '(-)'} ${formatCurrency(Math.abs(cumulative[cumulative.length-1]))}`}
+                          </span>
+                        </div>
                       </div>
-                      <div className="text-gray-400 text-sm">Lucros Recentes</div>
                     </div>
-                    <div className="bg-white/5 border border-white/10 rounded-lg p-4 text-center">
-                      <div className="text-2xl font-bold text-orange-400 mb-1">
-                        {stats.recentOperations.filter(op => op.operation_type === 'loss').length}
+
+                    {/* Métricas de Tendência */}
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      <div className="bg-white/5 border border-white/10 rounded-lg p-4 text-center">
+                        <div className="text-2xl font-bold text-green-400 mb-1">{recentWinRate}%</div>
+                        <div className="text-gray-400 text-sm">Taxa Recente</div>
                       </div>
-                      <div className="text-gray-400 text-sm">Perdas Recentes</div>
+                      <div className="bg-white/5 border border-white/10 rounded-lg p-4 text-center">
+                        <div className="text-2xl font-bold text-blue-400 mb-1">+{formatCurrency(avgProfit)}</div>
+                        <div className="text-gray-400 text-sm">Média Lucro</div>
+                      </div>
+                      <div className="bg-white/5 border border-white/10 rounded-lg p-4 text-center">
+                        <div className="text-2xl font-bold text-red-400 mb-1">-{formatCurrency(Math.abs(avgLoss))}</div>
+                        <div className="text-gray-400 text-sm">Média Perda</div>
+                      </div>
+                      <div className="bg-white/5 border border-white/10 rounded-lg p-4 text-center">
+                        <div className="relative inline-block group">
+                          <span
+                            className={`text-2xl font-bold mb-1 inline-block ${currentStreak >= 0 ? 'text-green-400' : 'text-red-400'}`}
+                            aria-label={currentStreak >= 0 ? `${currentStreak || 0} vitórias seguidas` : `${Math.abs(currentStreak)} perdas seguidas`}
+                          >
+                            {currentStreak >= 0 ? `${currentStreak || 0}W` : `${Math.abs(currentStreak)}L`}
+                          </span>
+                          <span className="pointer-events-none absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap bg-black text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition">
+                            {currentStreak >= 0 ? `${currentStreak || 0} vitórias seguidas` : `${Math.abs(currentStreak)} perdas seguidas`}
+                          </span>
+                        </div>
+                        <div className="text-gray-400 text-sm">Streak Atual</div>
+                      </div>
                     </div>
-                    <div className="bg-white/5 border border-white/10 rounded-lg p-4 text-center">
-                      <div className="text-2xl font-bold text-purple-400 mb-1">
-                        {stats.recentOperations.length > 0 ?
-                          ((stats.recentOperations.filter(op => op.operation_type === 'profit').length / stats.recentOperations.length) * 100).toFixed(0) : 0}%
+
+                    {/* Timeline de Operações Recentes */}
+                    <div>
+                      <h4 className="text-lg font-semibold text-white mb-4">Timeline de Performance</h4>
+                      <div className="space-y-3">
+                        {recent.map((op: any) => {
+                          const badge = getOperationBadge(op.square_color, op.is_goal_met, op.operation_value || 0, op.goal_value);
+                          return (
+                            <div key={op.id} className="flex items-center gap-4 p-3 bg-white/5 rounded-lg">
+                              <div className="flex items-center gap-3 min-w-[200px]">
+                                <div className={`w-3 h-3 rounded-full ${
+                                  op.operation_type === 'profit' ? 'bg-green-400' :
+                                  op.operation_type === 'loss' ? (op.square_color === 'orange' ? 'bg-orange-400' : 'bg-red-400') : 'bg-gray-400'
+                                }`}></div>
+                                <span className="text-gray-300 text-sm">{formatDate(op.created_at)}</span>
+                              </div>
+                              <div className="flex-1 flex items-center gap-2">
+                                <span className="text-white font-medium">Ciclo {op.cycle} - Dia {op.day_number}</span>
+                                <span className={`${badge.color} ${badge.textColor} px-2 py-1 rounded-full text-[10px] font-medium`}>
+                                  {badge.text}
+                                </span>
+                              </div>
+                              <div className="text-right min-w-[200px]">
+                                <p className="text-gray-300 text-sm">Meta: {formatCurrency(op.goal_value)}</p>
+                                {typeof op.operation_value === 'number' && (
+                                  <p className={`font-medium ${valueColor(op)}`}>
+                                    {valueContent(op)}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
                       </div>
-                      <div className="text-gray-400 text-sm">Taxa Recente</div>
                     </div>
                   </div>
-                </div>
-              ) : (
+                );
+              })() : (
                 <div className="text-center py-8">
                   <Activity className="w-12 h-12 text-gray-500 mx-auto mb-3" />
                   <p className="text-gray-400">Nenhuma operação para análise</p>
@@ -721,6 +989,7 @@ export const DashboardPage = () => {
           </div>
         )}
       </main>
+      </div>
     </div>
   );
 };
